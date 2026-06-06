@@ -1,7 +1,9 @@
 name: 'Publish and Deploy'
 
 on:
-    workflow_dispatch:
+    push:
+        branches: [master]     # 当 push 到 master 分支时自动触发
+    workflow_dispatch:         # 同时保留手动触发功能
         inputs:
             build_windows_x86_64:
                 description: 'Build for Windows x86_64'
@@ -27,17 +29,15 @@ jobs:
                     - platform: 'windows-latest'
                       target: 'x86_64-pc-windows-msvc'
                       args: ''
-                      enabled: ${{ github.event.inputs.build_windows_x86_64 == 'true' }}
+                      enabled: ${{ github.event.inputs.build_windows_x86_64 == 'true' || github.event_name == 'push' }}
 
         runs-on: ${{ matrix.platform }}
         timeout-minutes: 60
         steps:
             - name: Checkout
-              if: ${{ matrix.enabled }}
               uses: actions/checkout@v3
 
             - name: Check Tauri
-              if: ${{ matrix.enabled }}
               shell: bash
               run: |
                   if [ -z "${{ secrets.TAURI_KEY_PASSWORD }}" ]; then
@@ -46,31 +46,25 @@ jobs:
                   fi
 
             - name: Install rust target
-              if: ${{ matrix.enabled }}
               run: rustup target add ${{ matrix.target }}
 
             - uses: pnpm/action-setup@v3
-              if: ${{ matrix.enabled }}
               with:
                   version: latest
 
             - name: Sync node version and setup cache
-              if: ${{ matrix.enabled }}
               uses: actions/setup-node@v4
               with:
                   node-version: 22
                   cache: pnpm
 
             - name: Install Rust stable
-              if: ${{ matrix.enabled }}
               uses: dtolnay/rust-toolchain@stable
 
             - name: Install frontend dependencies
-              if: ${{ matrix.enabled }}
               run: pnpm install
 
             - uses: tauri-apps/tauri-action@v0
-              if: ${{ matrix.enabled }}
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}

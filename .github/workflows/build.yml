@@ -2,8 +2,8 @@ name: 'Publish and Deploy'
 
 on:
     push:
-        branches: [master]     # 当 push 到 master 分支时自动触发
-    workflow_dispatch:         # 同时保留手动触发功能
+        branches: [master]
+    workflow_dispatch:
         inputs:
             build_windows_x86_64:
                 description: 'Build for Windows x86_64'
@@ -13,6 +13,17 @@ on:
 
 permissions:
     contents: write
+    # 添加 release 权限
+    actions: read
+    checks: read
+    deployments: read
+    issues: read
+    packages: read
+    pages: read
+    pull-requests: read
+    repository-projects: read
+    security-events: read
+    statuses: read
 
 concurrency:
     group: pages
@@ -22,6 +33,8 @@ jobs:
     publish-tauri:
         permissions:
             contents: write
+            # 添加以下权限
+            pull-requests: write
         strategy:
             fail-fast: false
             matrix:
@@ -29,13 +42,12 @@ jobs:
                     - platform: 'windows-latest'
                       target: 'x86_64-pc-windows-msvc'
                       args: ''
-                      enabled: ${{ github.event.inputs.build_windows_x86_64 == 'true' || github.event_name == 'push' }}
 
         runs-on: ${{ matrix.platform }}
         timeout-minutes: 60
         steps:
             - name: Checkout
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4  # 升级到 v4
 
             - name: Check Tauri
               shell: bash
@@ -48,14 +60,14 @@ jobs:
             - name: Install rust target
               run: rustup target add ${{ matrix.target }}
 
-            - uses: pnpm/action-setup@v3
+            - uses: pnpm/action-setup@v4  # 升级到 v4
               with:
                   version: latest
 
             - name: Sync node version and setup cache
               uses: actions/setup-node@v4
               with:
-                  node-version: 22
+                  node-version: 22  # 升级到 22
                   cache: pnpm
 
             - name: Install Rust stable
@@ -63,6 +75,20 @@ jobs:
 
             - name: Install frontend dependencies
               run: pnpm install
+
+            - name: Create Release Body
+              id: release_body
+              run: |
+                  if [ -f "./Note.md" ]; then
+                    # 读取 Note.md 内容作为 release body
+                    BODY=$(cat ./Note.md)
+                    echo "body<<EOF" >> $GITHUB_OUTPUT
+                    echo "$BODY" >> $GITHUB_OUTPUT
+                    echo "EOF" >> $GITHUB_OUTPUT
+                  else
+                    echo "body=Auto-generated release" >> $GITHUB_OUTPUT
+                  fi
+              shell: bash
 
             - uses: tauri-apps/tauri-action@v0
               env:
@@ -72,7 +98,7 @@ jobs:
               with:
                   tagName: 'PakePlus-v__VERSION__'
                   releaseName: 'PakePlus v__VERSION__'
-                  body_path: ./Note.md
+                  releaseBody: ${{ steps.release_body.outputs.body }}
                   releaseDraft: true
                   prerelease: false
                   args: ${{ matrix.args }}

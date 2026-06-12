@@ -1710,10 +1710,12 @@ const publishPhone = async () => {
     if (store.token === '') {
         oneMessage.error(t('configToken'))
         return
-    } else if (checkLastPublish()) {
-        oneMessage.error(t('limitProject'))
-        return
     }
+    // 限制已取消：允许每小时多次发布
+    // if (checkLastPublish()) {
+    //     oneMessage.error(t('limitProject'))
+    //     return
+    // }
     centerDialogVisible.value = false
     buildLoading.value = true
     pubForm.platform.forEach(async (repo: string) => {

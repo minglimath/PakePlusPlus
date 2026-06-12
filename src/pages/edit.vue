@@ -1747,10 +1747,12 @@ const publishCheck = async () => {
         buildLoading.value = false
         return
     } else {
-        if (checkLastPublish()) {
-            oneMessage.error(t('limitProject'))
-            return
-        } else if (store.currentProject.platform.length > 0) {
+        // 限制已取消：允许每小时多次发布
+        // if (checkLastPublish()) {
+        //     oneMessage.error(t('limitProject'))
+        //     return
+        // } else if (store.currentProject.platform.length > 0) {
+        if (store.currentProject.platform.length > 0) {
             publishWeb()
         } else {
             oneMessage.error(t('selectPlatform'))

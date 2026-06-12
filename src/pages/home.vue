@@ -474,10 +474,11 @@ const goAbout = (route: string = 'about') => {
 
 // new barnch config
 const showBranchDialog = () => {
-    if (store.projectList.length !== 0 && !isDev) {
-        oneMessage.error(t('limitProject'))
-        return
-    }
+    // 限制已取消：允许创建多个项目
+    // if (store.projectList.length !== 0 && !isDev) {
+    //     oneMessage.error(t('limitProject'))
+    //     return
+    // }
     // if token exist, then creat branch, else next page
     // token.value && getCommitSha()
     // checkout has github token
